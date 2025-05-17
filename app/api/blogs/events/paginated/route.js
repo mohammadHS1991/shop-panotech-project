@@ -1,0 +1,130 @@
+import { headers } from "next/headers";
+
+import panotechDBConnect from "@/app/[lang]/utils/panotechDBConnect";
+import { Event } from "@/app/[lang]/models";
+import { logger } from "@/app/[lang]/utils/logger";
+
+export const GET = async (request, { params }) => {
+  const headerList = headers();
+  const API_KEY = headerList.get("API_KEY");
+  if (API_KEY === process.env.GET_API_KEY) {
+    try {
+      const searchParams = request.nextUrl.searchParams;
+      const page = searchParams.get("page") || 1;
+      const keyword = searchParams.get("keyword") || "null";
+      const lang = searchParams.get("lang") || "fa";
+      const itemsPerPage = searchParams.get("itemsPerPage") || 6;
+      const skip = (page - 1) * itemsPerPage;
+      await panotechDBConnect();
+      let eventsCount = 0;
+      if (keyword === "null") {
+        eventsCount = await Event.find({
+          status: "enable",
+        }).countDocuments();
+      }
+
+      if (keyword !== "null") {
+        if (lang === "fa") {
+          eventsCount = await Event.find({
+            "keywords.fa": keyword,
+            status: "enable",
+          }).countDocuments();
+        }
+        if (lang === "en") {
+          eventsCount = await Event.find({
+            "keywords.en": keyword,
+            status: "enable",
+          }).countDocuments();
+        }
+        if (lang === "ar") {
+          eventsCount = await Event.find({
+            "keywords.ar": keyword,
+            status: "enable",
+          }).countDocuments();
+        }
+      }
+
+      const pages = Math.ceil(eventsCount / itemsPerPage);
+
+      if (page > pages) {
+        return Response.json([], { status: 200 });
+      } else if (page <= 0) {
+        return Response.json("صفحه وارد شده صحیح نمی‌باشد", {
+          status: 422,
+        });
+      } else {
+        let events;
+        if (keyword === "null") {
+          events = await Event.find({ status: "enable" })
+            .sort({ date: -1 })
+            .skip(skip)
+            .limit(itemsPerPage)
+            .populate({
+              path: "writer",
+              model: "User",
+              select: "firstName lastName _id",
+            });
+        }
+        if (keyword !== "null") {
+          if (lang === "fa") {
+            events = await Event.find({
+              "keywords.fa": keyword,
+              status: "enable",
+            })
+              .sort({ date: -1 })
+              .skip(skip)
+              .limit(itemsPerPage)
+              .populate({
+                path: "writer",
+                model: "User",
+                select: "firstName lastName _id",
+              });
+          }
+          if (lang === "en") {
+            events = await Event.find({
+              "keywords.en": keyword,
+              status: "enable",
+            })
+              .sort({ date: -1 })
+              .skip(skip)
+              .limit(itemsPerPage)
+              .populate({
+                path: "writer",
+                model: "User",
+                select: "firstName lastName _id",
+              });
+          }
+          if (lang === "ar") {
+            events = await Event.find({
+              "keywords.ar": keyword,
+              status: "enable",
+            })
+              .sort({ date: -1 })
+              .skip(skip)
+              .limit(itemsPerPage)
+              .populate({
+                path: "writer",
+                model: "User",
+                select: "firstName lastName _id",
+              });
+          }
+        }
+
+        return Response.json(events, {
+          status: 200,
+          headers: {
+            "Cache-Control": "max-age=120, must-revalidate",
+          },
+        });
+      }
+    } catch (err) {
+      logger.error(`api events paginated get error, status:500/ ${err}`);
+
+      return Response.json("db error", { status: 500 });
+    }
+  } else {
+    logger.error("api events paginated get error, status:403");
+
+    return Response.json("access denied", { status: 403 });
+  }
+};

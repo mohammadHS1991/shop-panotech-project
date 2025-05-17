@@ -1,0 +1,14 @@
+#flagInput button {
+  border: none !important;
+  padding: 0 !important;
+  /* padding-right: 23px !important; */
+}
+
+#flagInput ul {
+  width: 110px;
+}
+
+#rfs-btn span {
+  padding: 0;
+  margin: 0 5px;
+}
